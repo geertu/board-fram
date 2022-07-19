@@ -1,0 +1,216 @@
+#!/bin/bash
+# Board FRAM - Board Farm Remote Access Management
+
+set -e
+
+PATH=/nas/ebisu/bin:/usr/bin:/bin
+
+BOARD=$USER
+USER=$1
+
+function usage()
+{
+	cat <<END
+
+Welcome to Board FRAM - The Board Farm Remote Access Manager
+
+Valid commands are:
+
+    help                           This usage information
+    acc [on|off|status*]           Control board accessory switch
+    console                        Access the board console (use "ssh -t")
+    ls                             List the TFTP directory contents
+    power [on|off|sample|status*]  Control board power
+    reset                          Reset board
+    rsync                          Upload files to TFTP directory (use rsync)
+    status                         Show board status
+    wake                           Wake board by key (NOT SUPPORTED on Ebisu)
+    wol                            Wake board through Wake-on-LAN
+
+Options marked with an asterisk are the default
+
+Notes:
+  - Please use only the IP address assigned to the board
+  - Please do not write to FLASH (U-Boot environment, RPC-IF, ...)
+  - Please do not mess with the NFS root file system
+
+U-Boot network configuration (cfr. default U-Boot bootcmd):
+
+    serverip=192.168.97.29
+    ipaddr=192.168.97.58
+    tftpboot 0x50000000 ebisu/Image
+    tftpboot 0x58000000 ebisu/r8a77990-ebisu-4d.dtb
+    booti 0x50000000 - 0x58000000
+
+NFS root (Debian) (cfr. default U-Boot bootargs):
+
+    nfsroot=192.168.97.29:/nas/ebisu/debian-arm64,tcp,v3
+
+DHCP is available, but using a different server than TFTP and NFS.
+
+END
+	if [ "$ADMIN" == "true" ]; then
+		cat <<END
+Valid admin commands are:
+
+    shell                   Launch a shell (use "ssh -t")
+
+END
+	fi
+	exit 0
+}
+
+# FIXME log $BOARD / $USER / $SSH_ORIGINAL_COMMAND
+
+case $USER in
+	geert)
+		ADMIN=true
+		;;
+	*)
+		;;
+esac
+
+# Handle help really early, as it does not need locking
+case "$SSH_ORIGINAL_COMMAND" in
+	help*)
+		usage
+		;;
+esac
+
+# FIXME board locking/reservation
+
+# Handle rsync early, before the welcome banner
+case "$SSH_ORIGINAL_COMMAND" in
+	rsync\ *)
+		export SSH_ORIGINAL_COMMAND
+		exec /usr/bin/rrsync -wo "/var/lib/tftpboot/$BOARD"
+		;;
+esac
+
+if [ "$ADMIN" == "true" ]; then
+	echo "Welcome master $USER, your wish is my command"
+
+	case "$SSH_ORIGINAL_COMMAND" in
+	shell)
+		exec /bin/bash -l
+		;;
+	esac
+else
+	echo "Welcome $USER"
+fi
+
+case "$SSH_ORIGINAL_COMMAND" in
+	acc*)
+		case "$SSH_ORIGINAL_COMMAND" in
+		acc\ on*)
+			# FIXME This check belongs in acc-"$BOARD"
+			if grep -q 0 <(power-"$BOARD"); then
+				echo "Board power is off.  Please power on first."
+				exit 1
+			fi
+			echo acc-"$BOARD" on
+			acc-"$BOARD" on
+			;;
+
+		acc\ off*)
+			echo acc-"$BOARD" off
+			acc-"$BOARD" off
+			;;
+
+		# default is status
+		*)
+			echo acc-"$BOARD" status
+			acc-"$BOARD" status
+			;;
+		esac
+		;;
+
+	console*)
+		screen-"$BOARD"
+		;;
+
+	ls*)
+		ls -lAh "/var/lib/tftpboot/$BOARD"
+		;;
+
+	power*)
+		# XXX Call into separate scripts (or functions, if included at the top?),
+		# XXX to avoid parameters?
+		# XXX noun-verb-option		or verb-noun-option?
+		# XXX $BOARD-power-on		or power-$BOARD-on		
+		# XXX $BOARD-power-off		or power-$BOARD-off		
+		# XXX $BOARD-power-sample	or power-$BOARD-sample	
+		# XXX $BOARD-power-status	or power-$BOARD-status	
+		case "$SSH_ORIGINAL_COMMAND" in
+		power\ on)
+			# FIXME This check belongs in power-"$BOARD"
+			if grep -q 0 <(power-main | tail -1); then
+				echo "Main power is off.  Please contact admin."
+				exit 1
+			fi
+			power-"$BOARD" on
+			;;
+
+		power\ off)
+			# FIXME This check belongs in power-"$BOARD"
+			if grep -q 1 <(acc-"$BOARD"); then
+				echo "Board acc is on.  Please acc off first."
+				exit 1
+			fi
+			power-"$BOARD" off
+			;;
+
+		power\ sample)
+			# TODO merge into power-* command
+			sample-"$BOARD"
+			;;
+
+		# default is status
+		*)
+			power-"$BOARD" status
+			;;
+		esac
+		;;
+
+	reset*)
+		reset-"$BOARD"
+		;;
+
+	status*)
+		# Show board status
+		main=$(power-main | tail -1)
+		power=$(power-"$BOARD")
+		acc=$(acc-"$BOARD")
+		if [ "$main" == "1" ]; then
+			main=on
+		else
+			main=off
+		fi
+		if [ "$power" == "1" ]; then
+			power=on
+		else
+			power=off
+		fi
+		if [ "$acc" == "1" ]; then
+			acc=on
+		else
+			acc=off
+		fi
+		echo main: $main / power: $power / acc: $acc
+		;;
+
+	wake*)
+		echo Not supported on Ebisu
+		exit 1
+		wake-"$BOARD"
+		;;
+
+	wol*)
+		wakeonlan "$BOARD"
+		;;
+
+	*)
+		echo "Unknown command $SSH_ORIGINAL_COMMAND"
+		usage
+		;;
+esac
