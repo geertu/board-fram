@@ -8,6 +8,9 @@ PATH="$HOME/bin:/usr/bin:/bin"
 BOARD=$USER
 USER=$1
 
+# Log access early
+echo "$(date +'%F %T') $BOARD $USER $SSH_ORIGINAL_COMMAND" >> fram.log
+
 function usage()
 {
 	cat <<END
@@ -59,8 +62,6 @@ END
 	fi
 	exit 0
 }
-
-# FIXME log $BOARD / $USER / $SSH_ORIGINAL_COMMAND
 
 case $USER in
 	geert)
