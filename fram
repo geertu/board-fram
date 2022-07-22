@@ -63,6 +63,9 @@ END
 	exit 0
 }
 
+# Load board-specific definitions, if available
+test -f "$BOARD.cfg" && source "$BOARD.cfg"
+
 case $USER in
 	geert)
 		ADMIN=true
