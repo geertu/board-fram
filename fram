@@ -58,7 +58,7 @@ fi
 
 # Handle help and welcome early, as they do not need locking
 case "$SSH_ORIGINAL_COMMAND" in
-	help*)
+	help)
 		usage
 		;;
 
@@ -87,36 +87,35 @@ fi
 case "$SSH_ORIGINAL_COMMAND" in
 	acc*)
 		case "$SSH_ORIGINAL_COMMAND" in
-		acc\ on*)
+		acc\ on|acc\ 1)
 			"acc-$BOARD-on"
 			;;
 
-		acc\ off*)
+		acc\ off|acc\ 0)
 			"acc-$BOARD-off"
 			;;
 
-		# default is status
-		*)
+		acc\ status|acc)
 			"acc-$BOARD-status"
 			;;
 		esac
 		;;
 
-	console*)
+	console)
 		"screen-$BOARD"
 		;;
 
-	ls*)
+	ls)
 		ls -lAh "/var/lib/tftpboot/$BOARD"
 		;;
 
 	power*)
 		case "$SSH_ORIGINAL_COMMAND" in
-		power\ on)
+		power\ on|power\ 1)
 			"power-$BOARD-on"
 			;;
 
-		power\ off)
+		power\ off|power\ 0)
 			"power-$BOARD-off"
 			;;
 
@@ -124,14 +123,13 @@ case "$SSH_ORIGINAL_COMMAND" in
 			"power-$BOARD-sample"
 			;;
 
-		# default is status
-		*)
+		power\ status|power)
 			"power-$BOARD-status"
 			;;
 		esac
 		;;
 
-	reset*)
+	reset)
 		"reset-$BOARD"
 		;;
 
@@ -140,7 +138,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 		exec /usr/bin/rrsync -wo "/var/lib/tftpboot/$BOARD"
 		;;
 
-	status*)
+	status)
 		# Show board status
 		power=$("power-$BOARD-status")
 		acc=$("acc-$BOARD-status")
@@ -157,13 +155,13 @@ case "$SSH_ORIGINAL_COMMAND" in
 		echo power: $power / acc: $acc
 		;;
 
-	wake*)
+	wake)
 		echo Not supported on Ebisu
 		exit 1
 		"wake-$BOARD"
 		;;
 
-	wol*)
+	wol)
 		wakeonlan "$BOARD"
 		;;
 
