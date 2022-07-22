@@ -56,33 +56,30 @@ if [ "$ADMIN_USERS" != "" ]; then
 	ADMIN=$(eval "case $USER in $ADMIN_USERS) echo true ;; esac")
 fi
 
-# Handle help really early, as it does not need locking
+# Handle help and welcome early, as they do not need locking
 case "$SSH_ORIGINAL_COMMAND" in
 	help*)
 		usage
 		;;
+
+	"")
+		# Welcome banner
+		if [ "$ADMIN" == "true" ]; then
+			echo "Welcome master $USER, your wish is my command"
+		else
+			echo "Welcome $USER"
+		fi
+		exit 0
 esac
 
 # FIXME board locking/reservation
 
-# Handle rsync early, before the welcome banner
-case "$SSH_ORIGINAL_COMMAND" in
-	rsync\ *)
-		export SSH_ORIGINAL_COMMAND
-		exec /usr/bin/rrsync -wo "/var/lib/tftpboot/$BOARD"
-		;;
-esac
-
 if [ "$ADMIN" == "true" ]; then
-	echo "Welcome master $USER, your wish is my command"
-
 	case "$SSH_ORIGINAL_COMMAND" in
 	shell)
 		exec /bin/bash -l
 		;;
 	esac
-else
-	echo "Welcome $USER"
 fi
 
 case "$SSH_ORIGINAL_COMMAND" in
@@ -134,6 +131,11 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 	reset*)
 		"reset-$BOARD"
+		;;
+
+	rsync\ *)
+		export SSH_ORIGINAL_COMMAND
+		exec /usr/bin/rrsync -wo "/var/lib/tftpboot/$BOARD"
 		;;
 
 	status*)
