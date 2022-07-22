@@ -13,29 +13,47 @@ echo "$(date +'%F %T') $BOARD $USER $SSH_ORIGINAL_COMMAND" >> fram.log
 
 function usage()
 {
+	# User commands help
 	cat <<END
 
-Welcome to Board FRAM - The Board Farm Remote Access Manager
+Board FRAM - The Board Farm Remote Access Manager
 
 Valid commands are:
 
     help                           This usage information
+END
+	type "acc-$BOARD-on" >& /dev/null && cat <<END
     acc [on|off|status*]           Control board accessory switch
+END
+	if type "power-$BOARD-sample" >& /dev/null; then
+		sample="|sample"
+	else
+		filler="       "
+	fi
+	cat <<END
     console                        Access the board console (use "ssh -t")
     ls                             List the TFTP directory contents
-    power [on|off|sample|status*]  Control board power
+    power [on|off$sample|status*]$filler  Control board power
     reset                          Reset board
     rsync                          Upload files to TFTP directory (use rsync)
     status                         Show board status
-    wake                           Wake board by key (NOT SUPPORTED on Ebisu)
+END
+	type "wake-$BOARD" >& /dev/null && cat <<END
+    wake                           Wake board by key
+END
+
+	grep -q "\s$BOARD$" /etc/ethers && cat <<END
     wol                            Wake board through Wake-on-LAN
+END
+
+	cat <<END
 
 Options marked with an asterisk are the default
-
 END
 
 	# Admin commands help
 	test "$ADMIN" == "true" && cat <<END
+
 Valid admin commands are:
 
     shell                   Launch a shell (use "ssh -t")
@@ -86,51 +104,63 @@ fi
 # User commands
 case "$SSH_ORIGINAL_COMMAND" in
 	acc*)
-		case "$SSH_ORIGINAL_COMMAND" in
-		acc\ on|acc\ 1)
-			"acc-$BOARD-on"
-			;;
+		# Optional
+		if type "acc-$BOARD-on" >& /dev/null; then
+			case "$SSH_ORIGINAL_COMMAND" in
+			acc\ on|acc\ 1)
+				"acc-$BOARD-on"
+				exit 0
+				;;
 
-		acc\ off|acc\ 0)
-			"acc-$BOARD-off"
-			;;
+			acc\ off|acc\ 0)
+				"acc-$BOARD-off"
+				exit 0
+				;;
 
-		acc\ status|acc)
-			"acc-$BOARD-status"
-			;;
-		esac
-		;;
+			acc\ status|acc)
+				"acc-$BOARD-status"
+				exit 0
+				;;
+			esac
+		fi
+		;;& # fallthrough
 
 	console)
 		"screen-$BOARD"
+		exit 0
 		;;
 
 	ls)
-		ls -lAh "/var/lib/tftpboot/$BOARD"
+		exec ls -lAh "/var/lib/tftpboot/$BOARD"
 		;;
 
 	power*)
 		case "$SSH_ORIGINAL_COMMAND" in
 		power\ on|power\ 1)
 			"power-$BOARD-on"
+			exit 0
 			;;
 
 		power\ off|power\ 0)
 			"power-$BOARD-off"
+			exit 0
 			;;
 
 		power\ sample)
-			"power-$BOARD-sample"
+			# Optional
+			type "power-$BOARD-sample" >& /dev/null && { "power-$BOARD-sample"; exit 0; }
 			;;
 
 		power\ status|power)
 			"power-$BOARD-status"
+			exit 0
 			;;
 		esac
-		;;
+		;;& # fallthrough
 
 	reset)
 		"reset-$BOARD"
+		exit 0
 		;;
 
 	rsync\ *)
@@ -141,29 +171,36 @@ case "$SSH_ORIGINAL_COMMAND" in
 	status)
 		# Show board status
 		power=$("power-$BOARD-status")
-		acc=$("acc-$BOARD-status")
 		if [ "$power" == "1" ]; then
 			power=on
 		else
 			power=off
 		fi
-		if [ "$acc" == "1" ]; then
-			acc=on
-		else
-			acc=off
+		status="power: $power"
+
+		# Optional
+		if type "acc-$BOARD-status" >& /dev/null; then
+			acc=$("acc-$BOARD-status")
+			if [ "$acc" == "1" ]; then
+				acc=on
+			else
+				acc=off
+			fi
+			status="$status / acc: $acc"
 		fi
-		echo power: $power / acc: $acc
+		echo "$status"
+		exit 0
 		;;
 
 	wake)
-		echo Not supported on Ebisu
-		exit 1
-		"wake-$BOARD"
-		;;
+		# Optional
+		type "wake-$BOARD" >& /dev/null && { "wake-$BOARD"; exit 0; }
+		;;& # fallthrough
 
 	wol)
-		wakeonlan "$BOARD"
-		;;
+		# Optional
+		grep -q "\s$BOARD$" /etc/ethers && exec wakeonlan "$BOARD"
+		;;& # fallthrough
 
 	*)
 		echo "Unknown command $SSH_ORIGINAL_COMMAND"
