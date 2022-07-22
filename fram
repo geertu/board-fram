@@ -3,7 +3,7 @@
 
 set -e
 
-PATH=/nas/ebisu/bin:/usr/bin:/bin
+PATH="$HOME/bin:/usr/bin:/bin"
 
 BOARD=$USER
 USER=$1
