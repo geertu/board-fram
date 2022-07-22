@@ -33,14 +33,14 @@ Valid commands are:
 Options marked with an asterisk are the default
 
 END
-	if [ "$ADMIN" == "true" ]; then
-		cat <<END
+
+	# Admin commands help
+	test "$ADMIN" == "true" && cat <<END
 Valid admin commands are:
 
     shell                   Launch a shell (use "ssh -t")
 
 END
-	fi
 
 	# Show board-specific information, if available
 	test -f "$BOARD.txt" && cat "$BOARD.txt"
