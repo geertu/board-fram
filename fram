@@ -104,11 +104,6 @@ case "$SSH_ORIGINAL_COMMAND" in
 	acc*)
 		case "$SSH_ORIGINAL_COMMAND" in
 		acc\ on*)
-			# FIXME This check belongs in acc-"$BOARD"
-			if grep -q 0 <(power-"$BOARD"); then
-				echo "Board power is off.  Please power on first."
-				exit 1
-			fi
 			echo acc-"$BOARD" on
 			acc-"$BOARD" on
 			;;
@@ -144,20 +139,10 @@ case "$SSH_ORIGINAL_COMMAND" in
 		# XXX $BOARD-power-status	or power-$BOARD-status	
 		case "$SSH_ORIGINAL_COMMAND" in
 		power\ on)
-			# FIXME This check belongs in power-"$BOARD"
-			if grep -q 0 <(power-main | tail -1); then
-				echo "Main power is off.  Please contact admin."
-				exit 1
-			fi
 			power-"$BOARD" on
 			;;
 
 		power\ off)
-			# FIXME This check belongs in power-"$BOARD"
-			if grep -q 1 <(acc-"$BOARD"); then
-				echo "Board acc is on.  Please acc off first."
-				exit 1
-			fi
 			power-"$BOARD" off
 			;;
 
@@ -179,14 +164,8 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 	status*)
 		# Show board status
-		main=$(power-main | tail -1)
 		power=$(power-"$BOARD")
 		acc=$(acc-"$BOARD")
-		if [ "$main" == "1" ]; then
-			main=on
-		else
-			main=off
-		fi
 		if [ "$power" == "1" ]; then
 			power=on
 		else
@@ -197,7 +176,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 		else
 			acc=off
 		fi
-		echo main: $main / power: $power / acc: $acc
+		echo power: $power / acc: $acc
 		;;
 
 	wake*)
