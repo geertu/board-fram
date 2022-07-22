@@ -72,8 +72,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 		exit 0
 esac
 
-# FIXME board locking/reservation
-
+# Admin commands
 if [ "$ADMIN" == "true" ]; then
 	case "$SSH_ORIGINAL_COMMAND" in
 	shell)
@@ -82,6 +81,9 @@ if [ "$ADMIN" == "true" ]; then
 	esac
 fi
 
+# FIXME board locking/reservation
+
+# User commands
 case "$SSH_ORIGINAL_COMMAND" in
 	acc*)
 		case "$SSH_ORIGINAL_COMMAND" in
