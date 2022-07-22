@@ -51,13 +51,10 @@ END
 # Load board-specific definitions, if available
 test -f "$BOARD.cfg" && source "$BOARD.cfg"
 
-case $USER in
-	geert)
-		ADMIN=true
-		;;
-	*)
-		;;
-esac
+# Admin commands must be enabled explicitly by setting ADMIN_USERS
+if [ "$ADMIN_USERS" != "" ]; then
+	ADMIN=$(eval "case $USER in $ADMIN_USERS) echo true ;; esac")
+fi
 
 # Handle help really early, as it does not need locking
 case "$SSH_ORIGINAL_COMMAND" in
