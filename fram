@@ -32,25 +32,6 @@ Valid commands are:
 
 Options marked with an asterisk are the default
 
-Notes:
-  - Please use only the IP address assigned to the board
-  - Please do not write to FLASH (U-Boot environment, RPC-IF, ...)
-  - Please do not mess with the NFS root file system
-
-U-Boot network configuration (cfr. default U-Boot bootcmd):
-
-    serverip=192.168.97.29
-    ipaddr=192.168.97.58
-    tftpboot 0x50000000 ebisu/Image
-    tftpboot 0x58000000 ebisu/r8a77990-ebisu-4d.dtb
-    booti 0x50000000 - 0x58000000
-
-NFS root (Debian) (cfr. default U-Boot bootargs):
-
-    nfsroot=192.168.97.29:/nas/ebisu/debian-arm64,tcp,v3
-
-DHCP is available, but using a different server than TFTP and NFS.
-
 END
 	if [ "$ADMIN" == "true" ]; then
 		cat <<END
@@ -60,6 +41,10 @@ Valid admin commands are:
 
 END
 	fi
+
+	# Show board-specific information, if available
+	test -f "$BOARD.txt" && cat "$BOARD.txt"
+
 	exit 0
 }
 
