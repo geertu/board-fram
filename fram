@@ -104,25 +104,22 @@ case "$SSH_ORIGINAL_COMMAND" in
 	acc*)
 		case "$SSH_ORIGINAL_COMMAND" in
 		acc\ on*)
-			echo acc-"$BOARD" on
-			acc-"$BOARD" on
+			"acc-$BOARD-on"
 			;;
 
 		acc\ off*)
-			echo acc-"$BOARD" off
-			acc-"$BOARD" off
+			"acc-$BOARD-off"
 			;;
 
 		# default is status
 		*)
-			echo acc-"$BOARD" status
-			acc-"$BOARD" status
+			"acc-$BOARD-status"
 			;;
 		esac
 		;;
 
 	console*)
-		screen-"$BOARD"
+		"screen-$BOARD"
 		;;
 
 	ls*)
@@ -130,42 +127,34 @@ case "$SSH_ORIGINAL_COMMAND" in
 		;;
 
 	power*)
-		# XXX Call into separate scripts (or functions, if included at the top?),
-		# XXX to avoid parameters?
-		# XXX noun-verb-option		or verb-noun-option?
-		# XXX $BOARD-power-on		or power-$BOARD-on		
-		# XXX $BOARD-power-off		or power-$BOARD-off		
-		# XXX $BOARD-power-sample	or power-$BOARD-sample	
-		# XXX $BOARD-power-status	or power-$BOARD-status	
 		case "$SSH_ORIGINAL_COMMAND" in
 		power\ on)
-			power-"$BOARD" on
+			"power-$BOARD-on"
 			;;
 
 		power\ off)
-			power-"$BOARD" off
+			"power-$BOARD-off"
 			;;
 
 		power\ sample)
-			# TODO merge into power-* command
-			sample-"$BOARD"
+			"power-$BOARD-sample"
 			;;
 
 		# default is status
 		*)
-			power-"$BOARD" status
+			"power-$BOARD-status"
 			;;
 		esac
 		;;
 
 	reset*)
-		reset-"$BOARD"
+		"reset-$BOARD"
 		;;
 
 	status*)
 		# Show board status
-		power=$(power-"$BOARD")
-		acc=$(acc-"$BOARD")
+		power=$("power-$BOARD-status")
+		acc=$("acc-$BOARD-status")
 		if [ "$power" == "1" ]; then
 			power=on
 		else
@@ -182,7 +171,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 	wake*)
 		echo Not supported on Ebisu
 		exit 1
-		wake-"$BOARD"
+		"wake-$BOARD"
 		;;
 
 	wol*)
