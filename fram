@@ -69,6 +69,9 @@ END
 # Load board-specific definitions, if available
 test -f "$BOARD.cfg" && source "$BOARD.cfg"
 
+# Initialise defaults
+TFTP_ROOT=${TFTP_ROOT:-/var/lib/tftpboot}
+
 # Admin commands must be enabled explicitly by setting ADMIN_USERS
 if [ "$ADMIN_USERS" != "" ]; then
 	ADMIN=$(eval "case $USER in $ADMIN_USERS) echo true ;; esac")
@@ -131,7 +134,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 		;;
 
 	ls)
-		exec ls -lAh "/var/lib/tftpboot/$BOARD"
+		exec ls -lAh "$TFTP_ROOT/$BOARD"
 		;;
 
 	power*)
@@ -165,7 +168,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 	rsync\ *)
 		export SSH_ORIGINAL_COMMAND
-		exec /usr/bin/rrsync -wo "/var/lib/tftpboot/$BOARD"
+		exec /usr/bin/rrsync -wo "$TFTP_ROOT/$BOARD"
 		;;
 
 	status)
