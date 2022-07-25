@@ -32,8 +32,10 @@ END
 	fi
 	cat <<END
     console                        Access the board console (use "ssh -t")
+    lock                           Lock a board for exclusive access
     ls                             List the TFTP directory contents
     power [on|off$sample|status*]$filler  Control board power
+    release                        Release a board lock
     reset                          Reset board
     rsync                          Upload files to TFTP directory (use rsync)
     status                         Show board status
@@ -57,6 +59,8 @@ END
 Valid admin commands are:
 
     shell                   Launch a shell (use "ssh -t")
+    release                 Release a board from any lock
+    steal                   Release then immediately lock
 
 END
 
@@ -71,6 +75,74 @@ test -f "$BOARD.cfg" && source "$BOARD.cfg"
 
 # Initialise defaults
 TFTP_ROOT=${TFTP_ROOT:-/var/lib/tftpboot}
+
+# Handle board locking
+LOCKFILE=${LOCKFILE:-/var/run/user/$UID/.$BOARD.lockfile}
+LOCK_HOLD_TIME=${LOCK_HOLD_TIME:-3600} # seconds
+
+function take_lock()
+{
+	echo $USER > $LOCKFILE
+}
+
+function report_lock()
+{
+	if [[ ! -e $LOCKFILE ]]; then
+		echo "Board is unlocked"
+		return 0
+	fi
+
+	LOCK_TIME="$(date -r $LOCKFILE +%s)"
+	LOCKUSER=$(< $LOCKFILE)
+	UNLOCK_TIME=$((LOCK_TIME + LOCK_HOLD_TIME))
+
+	# Lock expired
+	if [[ $UNLOCK_TIME < $(date +%s) ]];
+	then
+		echo "Board is unlocked. Last used by $LOCKUSER at $(date --date @$LOCK_TIME)"
+		return 0
+	fi
+
+	echo "Board is in use by $LOCKUSER until $(date --date @$UNLOCK_TIME)"
+}
+
+function check_lock()
+{
+	# No lock, no problem.
+	if [[ ! -e $LOCKFILE ]]; then
+		set -C; set +e
+		take_lock
+		set +C; set -e
+
+	fi
+
+	LOCK_TIME="$(date -r $LOCKFILE +%s)"
+	LOCKUSER=$(< $LOCKFILE)
+
+	# Have lock, no problem.
+	if [[ "$LOCKUSER" == "$USER" ]]; then
+		# Refresh the timestamp
+		take_lock
+		return 0
+	fi
+
+	UNLOCK_TIME=$((LOCK_TIME + LOCK_HOLD_TIME))
+
+	# Lock expired
+	if [[ $UNLOCK_TIME < $(date +%s) ]];
+	then
+		echo "Board lock released from $LOCKUSER, and now owned by $USER"
+		take_lock
+		return 0
+	fi
+
+	# Lock not expired. Call rejected
+
+	echo -n "Operation denied: "; report_lock
+
+	echo "$(date +'%F %T') $BOARD $USER REJECTED: Board locked by $LOCKUSER" >> fram.log
+	exit 13  ## -EACCES - Permission Denied
+}
 
 # Admin commands must be enabled explicitly by setting ADMIN_USERS
 if [ "$ADMIN_USERS" != "" ]; then
@@ -99,14 +171,25 @@ if [ "$ADMIN" == "true" ]; then
 	shell)
 		exec /bin/bash -l
 		;;
+	release)
+		report_lock
+		rm -f $LOCKFILE
+		echo "Lock released"
+		exit 0
+		;;
+	steal)
+		report_lock
+		take_lock
+		echo -n "Board lock stolen: "; report_lock
+		exit 0
+		;;
 	esac
 fi
-
-# FIXME board locking/reservation
 
 # User commands
 case "$SSH_ORIGINAL_COMMAND" in
 	acc*)
+		check_lock
 		# Optional
 		if type "acc-$BOARD-on" >& /dev/null; then
 			case "$SSH_ORIGINAL_COMMAND" in
@@ -133,11 +216,20 @@ case "$SSH_ORIGINAL_COMMAND" in
 		exit 0
 		;;
 
+	lock)
+		report_lock
+		check_lock
+		take_lock
+		echo -n "Lock granted: "; report_lock
+		exit 0
+		;;
+
 	ls)
 		exec ls -lAh "$TFTP_ROOT/$BOARD"
 		;;
 
 	power*)
+		check_lock
 		case "$SSH_ORIGINAL_COMMAND" in
 		power\ on|power\ 1)
 			"power-$BOARD-on"
@@ -161,17 +253,30 @@ case "$SSH_ORIGINAL_COMMAND" in
 		esac
 		;;& # fallthrough
 
+	release)
+		check_lock
+
+		rm $LOCKFILE
+		exit 0
+		;;
 	reset)
+		check_lock
 		"reset-$BOARD"
 		exit 0
 		;;
 
 	rsync\ *)
+		# Silence check_lock output to prevent breaking rsync. Ideally
+		# we should report back failures through the RSync MOTD.
+		check_lock >> /dev/null ## Silent operation
 		export SSH_ORIGINAL_COMMAND
 		exec /usr/bin/rrsync -wo "$TFTP_ROOT/$BOARD"
 		;;
 
 	status)
+		# Report the board lock status
+		report_lock
+
 		# Show board status
 		power=$("power-$BOARD-status")
 		if [ "$power" == "1" ]; then
@@ -196,11 +301,13 @@ case "$SSH_ORIGINAL_COMMAND" in
 		;;
 
 	wake)
+		check_lock
 		# Optional
 		type "wake-$BOARD" >& /dev/null && { "wake-$BOARD"; exit 0; }
 		;;& # fallthrough
 
 	wol)
+		check_lock
 		# Optional
 		grep -q "\s$BOARD$" /etc/ethers && exec wakeonlan "$BOARD"
 		;;& # fallthrough
