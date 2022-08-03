@@ -56,6 +56,7 @@ END
 
 Valid admin commands are:
 
+    logs                    View and monitor the logs
     shell                   Launch a shell (use "ssh -t")
 
 END
@@ -96,6 +97,9 @@ esac
 # Admin commands
 if [ "$ADMIN" == "true" ]; then
 	case "$SSH_ORIGINAL_COMMAND" in
+	logs)
+		exec tail -f fram.log
+		;;
 	shell)
 		exec /bin/bash -l
 		;;
