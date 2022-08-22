@@ -1,12 +1,12 @@
 #!/bin/sh
 
-mkdir -p $HOME/.ssh
+mkdir -p "$HOME/.ssh"
 
 for f in authorized_keys.d/*; do
-	user=$(basename $f .pub);
+	user=$(basename "$f" .pub);
 	user=${user%@*}
-	echo -n "restrict,pty,command=\"$PWD/bin/fram $user\" "
-	head -n 1 $f
-done > $HOME/.ssh/authorized_keys
+	printf "restrict,pty,command=\"%s/bin/fram %s\" " "$PWD" "$user"
+	head -n 1 "$f"
+done > "$HOME/.ssh/authorized_keys"
 
-chmod 600 $HOME/.ssh/authorized_keys
+chmod 600 "$HOME/.ssh/authorized_keys"
