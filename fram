@@ -42,7 +42,7 @@ END
     wake                           Wake board by key
 END
 
-	grep -q "\s$BOARD$" /etc/ethers && cat <<END
+	type "wol-$BOARD" >& /dev/null && cat <<END
     wol                            Wake board through Wake-on-LAN
 END
 
@@ -206,7 +206,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 	wol)
 		# Optional
-		grep -q "\s$BOARD$" /etc/ethers && exec wakeonlan "$BOARD"
+		type "wol-$BOARD" >& /dev/null && { "wol-$BOARD"; exit 0; }
 		;;& # fallthrough
 
 	*)
