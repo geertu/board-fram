@@ -1,6 +1,6 @@
 #!/bin/sh
 
-mkdir -p "$HOME/.ssh"
+mkdir -p -m 700 "$HOME/.ssh"
 
 for f in authorized_keys.d/*; do
 	user=$(basename "$f" .pub);
