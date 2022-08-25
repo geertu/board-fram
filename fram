@@ -15,7 +15,6 @@ function usage()
 {
 	# User commands help
 	cat <<END
-
 Board FRAM - The Board Farm Remote Access Manager for $BOARD
 
 Valid commands are:
@@ -58,11 +57,10 @@ Valid admin commands are:
 
     logs                    View and monitor the logs
     shell                   Launch a shell (use "ssh -t")
-
 END
 
 	# Show board-specific information, if available
-	test -f "$BOARD.txt" && cat "$BOARD.txt"
+	test -f "$BOARD.txt" && { echo; cat "$BOARD.txt"; }
 
 	exit 0
 }
