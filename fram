@@ -16,7 +16,7 @@ function usage()
 	# User commands help
 	cat <<END
 
-Board FRAM - The Board Farm Remote Access Manager
+Board FRAM - The Board Farm Remote Access Manager for $BOARD
 
 Valid commands are:
 
