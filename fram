@@ -65,6 +65,11 @@ END
 	exit 0
 }
 
+function needs_tty()
+{
+	test "$SSH_TTY" != "" || { echo "Please use ssh -t for $SSH_ORIGINAL_COMMAND"; exit 1; }
+}
+
 # Load board-specific definitions, if available
 test -f "$BOARD.cfg" && source "$BOARD.cfg"
 
@@ -99,6 +104,7 @@ if [ "$ADMIN" == "true" ]; then
 		exec tail -f fram.log
 		;;
 	shell)
+		needs_tty
 		exec /bin/bash -l
 		;;
 	esac
@@ -131,6 +137,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 		;;& # fallthrough
 
 	console)
+		needs_tty
 		"screen-$BOARD"
 		exit 0
 		;;
