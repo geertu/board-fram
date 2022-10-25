@@ -148,7 +148,7 @@ function needs_lock()
 }
 
 # Admin commands must be enabled explicitly by setting ADMIN_USERS
-if [ "$ADMIN_USERS" != "" ]; then
+if [[ $ADMIN_USERS != "" ]]; then
 	ADMIN=$(eval "case $USER in $ADMIN_USERS) echo true ;; esac")
 fi
 
@@ -160,7 +160,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 	"")
 		# Welcome banner
-		if [ "$ADMIN" == "true" ]; then
+		if [[ $ADMIN == true ]]; then
 			echo "Welcome master $USER, your wish is my command"
 		else
 			echo "Welcome $USER"
@@ -169,7 +169,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 esac
 
 # Admin commands
-if [ "$ADMIN" == "true" ]; then
+if [[ $ADMIN == true ]]; then
 	case "$SSH_ORIGINAL_COMMAND" in
 	logs)
 		exec tail -f fram.log
@@ -291,7 +291,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 		# Show board status
 		power=$("power-$BOARD-status")
-		if [ "$power" == "1" ]; then
+		if [[ $power == 1 ]]; then
 			power=on
 		else
 			power=off
@@ -301,7 +301,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 		# Optional
 		if type "acc-$BOARD-status" >& /dev/null; then
 			acc=$("acc-$BOARD-status")
-			if [ "$acc" == "1" ]; then
+			if [[ $acc == 1 ]]; then
 				acc=on
 			else
 				acc=off
