@@ -214,6 +214,11 @@ case "$SSH_ORIGINAL_COMMAND" in
 		type "wol-$BOARD" >& /dev/null && { "wol-$BOARD"; exit 0; }
 		;;& # fallthrough
 
+	command*|pwd)
+		# Issued by bash when completing e.g. rsync or scp commands,
+		# hence ignored
+		;;
+
 	*)
 		echo "Unknown command $SSH_ORIGINAL_COMMAND"
 		;;
