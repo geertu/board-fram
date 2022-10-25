@@ -3,28 +3,28 @@
 
 set -e
 
-PATH="$HOME/bin:/usr/bin:/bin"
+PATH="${HOME}/bin:/usr/bin:/bin"
 
-BOARD=$USER
+BOARD=${USER}
 USER=$1
 
 # Log access early
-echo "$(date +'%F %T') $BOARD $USER $SSH_ORIGINAL_COMMAND" >> fram.log
+echo "$(date +'%F %T') ${BOARD} ${USER} ${SSH_ORIGINAL_COMMAND}" >> fram.log
 
 function usage()
 {
 	# User commands help
 	cat <<END
-Board FRAM - The Board Farm Remote Access Manager for $BOARD
+Board FRAM - The Board Farm Remote Access Manager for ${BOARD}
 
 Valid commands are:
 
     help                           This usage information
 END
-	type "acc-$BOARD-on" >& /dev/null && cat <<END
+	type "acc-${BOARD}-on" >& /dev/null && cat <<END
     acc [on|off|status*]           Control board accessory switch
 END
-	if type "power-$BOARD-sample" >& /dev/null; then
+	if type "power-${BOARD}-sample" >& /dev/null; then
 		sample="|sample"
 	else
 		filler="       "
@@ -33,17 +33,17 @@ END
     console                        Access the board console (use "ssh -t")
     lock                           Lock the board for exclusive access
     ls                             List the TFTP directory contents
-    power [on|off$sample|status*]$filler  Control board power
+    power [on|off${sample}|status*]${filler}  Control board power
     release                        Release the board lock
     reset                          Reset board
     rsync                          Upload files to TFTP directory (use rsync)
     status                         Show board status
 END
-	type "wake-$BOARD" >& /dev/null && cat <<END
+	type "wake-${BOARD}" >& /dev/null && cat <<END
     wake                           Wake board by key
 END
 
-	type "wol-$BOARD" >& /dev/null && cat <<END
+	type "wol-${BOARD}" >& /dev/null && cat <<END
     wol                            Wake board through Wake-on-LAN
 END
 
@@ -53,7 +53,7 @@ Options marked with an asterisk are the default
 END
 
 	# Admin commands help
-	test "$ADMIN" == "true" && cat <<END
+	test "${ADMIN}" == "true" && cat <<END
 
 Valid admin commands are:
 
@@ -64,50 +64,50 @@ Valid admin commands are:
 END
 
 	# Show board-specific information, if available
-	test -f "$BOARD.txt" && { echo; cat "$BOARD.txt"; }
+	test -f "${BOARD}.txt" && { echo; cat "${BOARD}.txt"; }
 
 	exit 0
 }
 
 function needs_tty()
 {
-	test "$SSH_TTY" != "" || { echo "Please use ssh -t for $SSH_ORIGINAL_COMMAND"; exit 1; }
+	test "${SSH_TTY}" != "" || { echo "Please use ssh -t for ${SSH_ORIGINAL_COMMAND}"; exit 1; }
 }
 
 # Load board-specific definitions, if available
-test -f "$BOARD.cfg" && source "$BOARD.cfg"
+test -f "${BOARD}.cfg" && source "${BOARD}.cfg"
 
 # Initialise defaults
 TFTP_ROOT=${TFTP_ROOT:-/var/lib/tftpboot}
 
 # Handle board locking
-LOCKFILE=${LOCKFILE:-/var/run/user/$UID/.$BOARD.lockfile}
+LOCKFILE=${LOCKFILE:-/var/run/user/${UID}/.${BOARD}.lockfile}
 LOCK_HOLD_TIME=${LOCK_HOLD_TIME:-3600} # seconds
 
 function take_lock()
 {
-	echo "$USER" > "$LOCKFILE"
+	echo "${USER}" > "${LOCKFILE}"
 }
 
 function report_lock()
 {
-	if [[ ! -e $LOCKFILE ]]; then
+	if [[ ! -e ${LOCKFILE} ]]; then
 		echo "Board is unlocked"
 		return
 	fi
 
-	LOCK_TIME="$(date -r "$LOCKFILE" +%s)"
-	LOCKUSER=$(< "$LOCKFILE")
+	LOCK_TIME="$(date -r "${LOCKFILE}" +%s)"
+	LOCKUSER=$(< "${LOCKFILE}")
 	UNLOCK_TIME=$((LOCK_TIME + LOCK_HOLD_TIME))
 
 	# Lock expired
-	if [[ $UNLOCK_TIME < $(date +%s) ]];
+	if [[ ${UNLOCK_TIME} < $(date +%s) ]];
 	then
-		echo "Board is unlocked. Last used by $LOCKUSER at $(date -R --date @"$LOCK_TIME")"
+		echo "Board is unlocked. Last used by ${LOCKUSER} at $(date -R --date @"${LOCK_TIME}")"
 		return
 	fi
 
-	echo "Board is in use by $LOCKUSER until $(date -R --date @"$UNLOCK_TIME")"
+	echo "Board is in use by ${LOCKUSER} until $(date -R --date @"${UNLOCK_TIME}")"
 }
 
 function needs_lock()
@@ -120,11 +120,11 @@ function needs_lock()
 	# No lock, no problem
 	test "${res}" -eq 0 && return
 
-	LOCK_TIME="$(date -r "$LOCKFILE" +%s)"
-	LOCKUSER=$(< "$LOCKFILE")
+	LOCK_TIME="$(date -r "${LOCKFILE}" +%s)"
+	LOCKUSER=$(< "${LOCKFILE}")
 
 	# Have lock, no problem
-	if [[ "$LOCKUSER" == "$USER" ]]; then
+	if [[ "${LOCKUSER}" == "${USER}" ]]; then
 		# Refresh the timestamp
 		take_lock
 		return
@@ -133,9 +133,9 @@ function needs_lock()
 	UNLOCK_TIME=$((LOCK_TIME + LOCK_HOLD_TIME))
 
 	# Lock expired
-	if [[ $UNLOCK_TIME < $(date +%s) ]];
+	if [[ ${UNLOCK_TIME} < $(date +%s) ]];
 	then
-		echo "Board lock released from $LOCKUSER, and now owned by $USER"
+		echo "Board lock released from ${LOCKUSER}, and now owned by ${USER}"
 		take_lock
 		return
 	fi
@@ -143,34 +143,34 @@ function needs_lock()
 	# Lock not expired. Call rejected
 	echo -n "Operation denied: "; report_lock
 
-	echo "$(date +'%F %T') $BOARD $USER REJECTED: Board locked by $LOCKUSER" >> fram.log
+	echo "$(date +'%F %T') ${BOARD} ${USER} REJECTED: Board locked by ${LOCKUSER}" >> fram.log
 	exit 1
 }
 
 # Admin commands must be enabled explicitly by setting ADMIN_USERS
-if [[ $ADMIN_USERS != "" ]]; then
-	ADMIN=$(eval "case $USER in $ADMIN_USERS) echo true ;; esac")
+if [[ ${ADMIN_USERS} != "" ]]; then
+	ADMIN=$(eval "case ${USER} in ${ADMIN_USERS}) echo true ;; esac")
 fi
 
 # Handle help and welcome early, as they do not need locking
-case "$SSH_ORIGINAL_COMMAND" in
+case "${SSH_ORIGINAL_COMMAND}" in
 	help)
 		usage
 		;;
 
 	"")
 		# Welcome banner
-		if [[ $ADMIN == true ]]; then
-			echo "Welcome master $USER, your wish is my command"
+		if [[ ${ADMIN} == true ]]; then
+			echo "Welcome master ${USER}, your wish is my command"
 		else
-			echo "Welcome $USER"
+			echo "Welcome ${USER}"
 		fi
 		exit 0
 esac
 
 # Admin commands
-if [[ $ADMIN == true ]]; then
-	case "$SSH_ORIGINAL_COMMAND" in
+if [[ ${ADMIN} == true ]]; then
+	case "${SSH_ORIGINAL_COMMAND}" in
 	logs)
 		exec tail -f fram.log
 		;;
@@ -189,7 +189,7 @@ if [[ $ADMIN == true ]]; then
 
 	unlock)
 		report_lock
-		rm -f "$LOCKFILE"
+		rm -f "${LOCKFILE}"
 		echo "Board unlocked"
 		exit 0
 		;;
@@ -197,25 +197,25 @@ if [[ $ADMIN == true ]]; then
 fi
 
 # User commands
-case "$SSH_ORIGINAL_COMMAND" in
+case "${SSH_ORIGINAL_COMMAND}" in
 	acc*)
 		# Optional
-		if type "acc-$BOARD-on" >& /dev/null; then
-			case "$SSH_ORIGINAL_COMMAND" in
+		if type "acc-${BOARD}-on" >& /dev/null; then
+			case "${SSH_ORIGINAL_COMMAND}" in
 			acc\ on|acc\ 1)
 				needs_lock
-				"acc-$BOARD-on"
+				"acc-${BOARD}-on"
 				exit 0
 				;;
 
 			acc\ off|acc\ 0)
 				needs_lock
-				"acc-$BOARD-off"
+				"acc-${BOARD}-off"
 				exit 0
 				;;
 
 			acc\ status|acc)
-				"acc-$BOARD-status"
+				"acc-${BOARD}-status"
 				exit 0
 				;;
 			esac
@@ -225,7 +225,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 	console)
 		needs_tty
 		needs_lock
-		"screen-$BOARD"
+		"screen-${BOARD}"
 		exit 0
 		;;
 
@@ -236,30 +236,30 @@ case "$SSH_ORIGINAL_COMMAND" in
 		;;
 
 	ls)
-		exec ls -lAh "$TFTP_ROOT/$BOARD"
+		exec ls -lAh "${TFTP_ROOT}/${BOARD}"
 		;;
 
 	power*)
-		case "$SSH_ORIGINAL_COMMAND" in
+		case "${SSH_ORIGINAL_COMMAND}" in
 		power\ on|power\ 1)
 			needs_lock
-			"power-$BOARD-on"
+			"power-${BOARD}-on"
 			exit 0
 			;;
 
 		power\ off|power\ 0)
 			needs_lock
-			"power-$BOARD-off"
+			"power-${BOARD}-off"
 			exit 0
 			;;
 
 		power\ sample)
 			# Optional
-			type "power-$BOARD-sample" >& /dev/null && { "power-$BOARD-sample"; exit 0; }
+			type "power-${BOARD}-sample" >& /dev/null && { "power-${BOARD}-sample"; exit 0; }
 			;;
 
 		power\ status|power)
-			"power-$BOARD-status"
+			"power-${BOARD}-status"
 			exit 0
 			;;
 		esac
@@ -267,13 +267,13 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 	release)
 		needs_lock
-		rm "$LOCKFILE"
+		rm "${LOCKFILE}"
 		exit 0
 		;;
 
 	reset)
 		needs_lock
-		"reset-$BOARD"
+		"reset-${BOARD}"
 		exit 0
 		;;
 
@@ -282,7 +282,7 @@ case "$SSH_ORIGINAL_COMMAND" in
 		# Ideally we should report back failures through the rsync MOTD
 		needs_lock >& /dev/null
 		export SSH_ORIGINAL_COMMAND
-		exec /usr/bin/rrsync -wo "$TFTP_ROOT/$BOARD"
+		exec /usr/bin/rrsync -wo "${TFTP_ROOT}/${BOARD}"
 		;;
 
 	status)
@@ -290,33 +290,33 @@ case "$SSH_ORIGINAL_COMMAND" in
 		report_lock
 
 		# Show board status
-		power=$("power-$BOARD-status")
-		if [[ $power == 1 ]]; then
+		power=$("power-${BOARD}-status")
+		if [[ ${power} == 1 ]]; then
 			power=on
 		else
 			power=off
 		fi
-		status="power: $power"
+		status="power: ${power}"
 
 		# Optional
-		if type "acc-$BOARD-status" >& /dev/null; then
-			acc=$("acc-$BOARD-status")
-			if [[ $acc == 1 ]]; then
+		if type "acc-${BOARD}-status" >& /dev/null; then
+			acc=$("acc-${BOARD}-status")
+			if [[ ${acc} == 1 ]]; then
 				acc=on
 			else
 				acc=off
 			fi
-			status="$status / acc: $acc"
+			status="${status} / acc: ${acc}"
 		fi
-		echo "$status"
+		echo "${status}"
 		exit 0
 		;;
 
 	wake)
 		# Optional
-		if type "wake-$BOARD" >& /dev/null; then
+		if type "wake-${BOARD}" >& /dev/null; then
 			needs_lock
-			"wake-$BOARD"
+			"wake-${BOARD}"
 			exit 0
 		fi
 		;;& # fallthrough
@@ -324,9 +324,9 @@ case "$SSH_ORIGINAL_COMMAND" in
 	wol)
 		# Optional
 		needs_lock
-		if type "wol-$BOARD" >& /dev/null; then
+		if type "wol-${BOARD}" >& /dev/null; then
 			needs_lock
-			"wol-$BOARD"
+			"wol-${BOARD}"
 			exit 0
 		fi
 		;;& # fallthrough
@@ -337,6 +337,6 @@ case "$SSH_ORIGINAL_COMMAND" in
 		;;
 
 	*)
-		echo "Unknown command $SSH_ORIGINAL_COMMAND"
+		echo "Unknown command ${SSH_ORIGINAL_COMMAND}"
 		;;
 esac
