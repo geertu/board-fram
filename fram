@@ -31,8 +31,10 @@ END
 	fi
 	cat <<END
     console                        Access the board console (use "ssh -t")
+    lock                           Lock the board for exclusive access
     ls                             List the TFTP directory contents
     power [on|off$sample|status*]$filler  Control board power
+    release                        Release the board lock
     reset                          Reset board
     rsync                          Upload files to TFTP directory (use rsync)
     status                         Show board status
@@ -57,6 +59,8 @@ Valid admin commands are:
 
     logs                    View and monitor the logs
     shell                   Launch a shell (use "ssh -t")
+    steal                   Release then immediately lock
+    unlock                  Release the board from any lock
 END
 
 	# Show board-specific information, if available
@@ -75,6 +79,73 @@ test -f "$BOARD.cfg" && source "$BOARD.cfg"
 
 # Initialise defaults
 TFTP_ROOT=${TFTP_ROOT:-/var/lib/tftpboot}
+
+# Handle board locking
+LOCKFILE=${LOCKFILE:-/var/run/user/$UID/.$BOARD.lockfile}
+LOCK_HOLD_TIME=${LOCK_HOLD_TIME:-3600} # seconds
+
+function take_lock()
+{
+	echo "$USER" > "$LOCKFILE"
+}
+
+function report_lock()
+{
+	if [[ ! -e $LOCKFILE ]]; then
+		echo "Board is unlocked"
+		return
+	fi
+
+	LOCK_TIME="$(date -r "$LOCKFILE" +%s)"
+	LOCKUSER=$(< "$LOCKFILE")
+	UNLOCK_TIME=$((LOCK_TIME + LOCK_HOLD_TIME))
+
+	# Lock expired
+	if [[ $UNLOCK_TIME < $(date +%s) ]];
+	then
+		echo "Board is unlocked. Last used by $LOCKUSER at $(date -R --date @"$LOCK_TIME")"
+		return
+	fi
+
+	echo "Board is in use by $LOCKUSER until $(date -R --date @"$UNLOCK_TIME")"
+}
+
+function needs_lock()
+{
+	# Try to take lock
+	set -C; set +e
+	take_lock >& /dev/null; res=$?
+	set +C; set -e
+
+	# No lock, no problem
+	test "${res}" -eq 0 && return
+
+	LOCK_TIME="$(date -r "$LOCKFILE" +%s)"
+	LOCKUSER=$(< "$LOCKFILE")
+
+	# Have lock, no problem
+	if [[ "$LOCKUSER" == "$USER" ]]; then
+		# Refresh the timestamp
+		take_lock
+		return
+	fi
+
+	UNLOCK_TIME=$((LOCK_TIME + LOCK_HOLD_TIME))
+
+	# Lock expired
+	if [[ $UNLOCK_TIME < $(date +%s) ]];
+	then
+		echo "Board lock released from $LOCKUSER, and now owned by $USER"
+		take_lock
+		return
+	fi
+
+	# Lock not expired. Call rejected
+	echo -n "Operation denied: "; report_lock
+
+	echo "$(date +'%F %T') $BOARD $USER REJECTED: Board locked by $LOCKUSER" >> fram.log
+	exit 1
+}
 
 # Admin commands must be enabled explicitly by setting ADMIN_USERS
 if [ "$ADMIN_USERS" != "" ]; then
@@ -103,14 +174,27 @@ if [ "$ADMIN" == "true" ]; then
 	logs)
 		exec tail -f fram.log
 		;;
+
 	shell)
 		needs_tty
 		exec /bin/bash -l
 		;;
+
+	steal)
+		report_lock
+		take_lock
+		echo -n "Board lock stolen: "; report_lock
+		exit 0
+		;;
+
+	unlock)
+		report_lock
+		rm -f "$LOCKFILE"
+		echo "Board unlocked"
+		exit 0
+		;;
 	esac
 fi
-
-# FIXME board locking/reservation
 
 # User commands
 case "$SSH_ORIGINAL_COMMAND" in
@@ -119,11 +203,13 @@ case "$SSH_ORIGINAL_COMMAND" in
 		if type "acc-$BOARD-on" >& /dev/null; then
 			case "$SSH_ORIGINAL_COMMAND" in
 			acc\ on|acc\ 1)
+				needs_lock
 				"acc-$BOARD-on"
 				exit 0
 				;;
 
 			acc\ off|acc\ 0)
+				needs_lock
 				"acc-$BOARD-off"
 				exit 0
 				;;
@@ -138,7 +224,14 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 	console)
 		needs_tty
+		needs_lock
 		"screen-$BOARD"
+		exit 0
+		;;
+
+	lock)
+		needs_lock
+		echo -n "Lock granted: "; report_lock
 		exit 0
 		;;
 
@@ -149,11 +242,13 @@ case "$SSH_ORIGINAL_COMMAND" in
 	power*)
 		case "$SSH_ORIGINAL_COMMAND" in
 		power\ on|power\ 1)
+			needs_lock
 			"power-$BOARD-on"
 			exit 0
 			;;
 
 		power\ off|power\ 0)
+			needs_lock
 			"power-$BOARD-off"
 			exit 0
 			;;
@@ -170,17 +265,30 @@ case "$SSH_ORIGINAL_COMMAND" in
 		esac
 		;;& # fallthrough
 
+	release)
+		needs_lock
+		rm "$LOCKFILE"
+		exit 0
+		;;
+
 	reset)
+		needs_lock
 		"reset-$BOARD"
 		exit 0
 		;;
 
 	rsync\ *)
+		# Silence needs_lock output to prevent breaking rsync
+		# Ideally we should report back failures through the rsync MOTD
+		needs_lock >& /dev/null
 		export SSH_ORIGINAL_COMMAND
 		exec /usr/bin/rrsync -wo "$TFTP_ROOT/$BOARD"
 		;;
 
 	status)
+		# Report the board lock status
+		report_lock
+
 		# Show board status
 		power=$("power-$BOARD-status")
 		if [ "$power" == "1" ]; then
@@ -206,12 +314,21 @@ case "$SSH_ORIGINAL_COMMAND" in
 
 	wake)
 		# Optional
-		type "wake-$BOARD" >& /dev/null && { "wake-$BOARD"; exit 0; }
+		if type "wake-$BOARD" >& /dev/null; then
+			needs_lock
+			"wake-$BOARD"
+			exit 0
+		fi
 		;;& # fallthrough
 
 	wol)
 		# Optional
-		type "wol-$BOARD" >& /dev/null && { "wol-$BOARD"; exit 0; }
+		needs_lock
+		if type "wol-$BOARD" >& /dev/null; then
+			needs_lock
+			"wol-$BOARD"
+			exit 0
+		fi
 		;;& # fallthrough
 
 	command*|pwd)
