@@ -101,7 +101,7 @@ function report_lock()
 	UNLOCK_TIME=$((LOCK_TIME + LOCK_HOLD_TIME))
 
 	# Lock expired
-	if [[ ${UNLOCK_TIME} < $(date +%s) ]]; then
+	if [[ ${UNLOCK_TIME} -lt $(date +%s) ]]; then
 		echo "Board is unlocked. Last used by ${LOCKUSER} at $(date -R --date @"${LOCK_TIME}")"
 		return
 	fi
@@ -132,7 +132,7 @@ function needs_lock()
 	UNLOCK_TIME=$((LOCK_TIME + LOCK_HOLD_TIME))
 
 	# Lock expired
-	if [[ ${UNLOCK_TIME} < $(date +%s) ]]; then
+	if [[ ${UNLOCK_TIME} -lt $(date +%s) ]]; then
 		echo "Board lock released from ${LOCKUSER}, and now owned by ${USER}"
 		take_lock
 		return
