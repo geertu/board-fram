@@ -1,5 +1,5 @@
 #!/bin/bash
-# Board FRAM - Board Farm Remote Access Management
+# Board FRAM - Board Farm Remote Access Management - Server
 
 set -e
 
