@@ -1,5 +1,10 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-only
+
 # Board FRAM - Board Farm Remote Access Management - Server
+#
+# Copyright (C) 2022-2023 Glider bv
+# Copyright (C) 2022 Ideas on Board
 
 set -e
 
