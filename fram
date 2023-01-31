@@ -1,0 +1,77 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+# Board FRAM - Board Farm Remote Access Management - Client convenience wrapper
+#
+# Copyright (C) 2023 Glider bv
+
+set -e
+
+CONFIG="$HOME/.framrc"
+test -f "$CONFIG" || { echo Config file "$CONFIG" does not exist; exit 1; }
+
+function usage()
+{
+	cat <<END
+Board FRAM - Board Farm Remote Access Management
+
+Usage:
+    $(basename "$0") <help>
+    $(basename "$0") <board> <command> ...
+
+Valid commands are:
+
+    help                           Show board usage information
+    acc [on|off|status*]           Control board accessory switch
+    console                        Access the board console
+    lock                           Lock the board for exclusive access
+ #  logs                           View and monitor the logs
+    ls                             List the TFTP directory contents
+    power [on|off|sample|status*]  Control board power
+    release                        Release the board lock
+    reset                          Reset board
+ #  setup <user>                   Set up environment for specified user
+ #  shell                          Launch a shell
+    status                         Show board status
+ #  steal                          Release then immediately lock
+ #  unlock                         Release the board from any lock
+    upload                         Upload files to TFTP directory
+    wake                           Wake board by key
+    wol                            Wake board through Wake-on-LAN
+
+Commands marked with a hash mark need admin permissions on the target board.
+Options marked with an asterisk are the default.
+END
+	exit 0
+}
+
+CMD=$(basename "$0")
+if [ "$CMD" == "fram" ]; then
+	if [ $# -lt 2 ]; then
+		usage
+	fi
+
+	BOARD=$1
+	shift
+	CMD=$1
+	shift
+else
+	BOARD=${CMD#*-}
+	CMD=${CMD%%-*}
+fi
+
+TARGET=$(sed -n -e "s/^$BOARD=//p" "$CONFIG")
+test -z "$TARGET" && { echo "$BOARD" not found in "$CONFIG"; exit 1; }
+
+case "${CMD}" in
+console|shell)
+	SSH_ARGS=-t
+	;;
+
+upload)
+	rsync -zav "$@" "$TARGET:"
+	exit 0
+	;;
+esac
+
+ssh $SSH_ARGS "$TARGET" "$CMD" "$@"
