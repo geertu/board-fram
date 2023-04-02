@@ -58,15 +58,22 @@ Options marked with an asterisk are the default
 END
 
 	# Admin commands help
-	test "${ADMIN}" == "true" && cat <<END
+	if [[ ${ADMIN} == true ]]; then
+		cat <<END
 
 Valid admin commands are:
 
     logs                    View and monitor the logs
+END
+		type "setup-${BOARD}" >& /dev/null && cat <<END
+    setup <user>            Set up environment for specified user
+END
+		cat <<END
     shell                   Launch a shell (use "ssh -t")
-    steal                   Release then immediately lock
+    steal                   Release then immediately lock (without setup!)
     unlock                  Release the board from any lock
 END
+	fi
 
 	# Show board-specific information, if available
 	test -f "${BOARD}.txt" && { echo; cat "${BOARD}.txt"; }
@@ -122,7 +129,10 @@ function needs_lock()
 	set +C; set -e
 
 	# No lock, no problem
-	test "${res}" -eq 0 && return
+	if [[ ${res} -eq 0 ]]; then
+		type "setup-${BOARD}" >& /dev/null && "setup-${BOARD}" "${USER}"
+		return 0
+	fi
 
 	LOCK_TIME="$(date -r "${LOCKFILE}" +%s)"
 	LOCKUSER=$(< "${LOCKFILE}")
@@ -140,7 +150,8 @@ function needs_lock()
 	if [[ ${UNLOCK_TIME} -lt $(date +%s) ]]; then
 		echo "Board lock released from ${LOCKUSER}, and now owned by ${USER}"
 		take_lock
-		return
+		type "setup-${BOARD}" >& /dev/null && "setup-${BOARD}" "${USER}"
+		return 0
 	fi
 
 	# Lock not expired. Call rejected
@@ -176,6 +187,17 @@ if [[ ${ADMIN} == true ]]; then
 	case "${SSH_ORIGINAL_COMMAND}" in
 	logs)
 		exec tail -f fram.log
+		;;
+
+	setup*)
+		# Optional
+		if type "setup-${BOARD}" >& /dev/null; then
+			ARGS=(${SSH_ORIGINAL_COMMAND})
+			USER=${ARGS[1]}
+			test -n "${USER}" || { echo "No user specified"; exit 1; }
+			"setup-${BOARD}" "${USER}"
+			exit 0
+		fi
 		;;
 
 	shell)
