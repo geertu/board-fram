@@ -250,7 +250,7 @@ case "${SSH_ORIGINAL_COMMAND}" in
 	console)
 		needs_tty
 		needs_lock
-		"screen-${BOARD}"
+		"console-${BOARD}"
 		exit 0
 		;;
 
