@@ -35,7 +35,7 @@ Valid commands are:
     status                         Show board status
  #  steal                          Release then immediately lock
  #  unlock                         Release the board from any lock
-    upload                         Upload files to TFTP directory
+    upload <file> ...              Upload files to TFTP directory
     wake                           Wake board by key
     wol                            Wake board through Wake-on-LAN
 
