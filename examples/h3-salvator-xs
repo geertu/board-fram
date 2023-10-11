@@ -1,0 +1,5 @@
+# Copy this file to /var/lib/AccountsService/users/ to prevent the user from
+# being listed by a graphical login manager
+
+[User]
+SystemAccount=true
