@@ -1,0 +1,31 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+# Copyright (C) 2023 Glider bv
+
+set -e
+
+if [ $# -ne 2 ]; then
+        echo "Usage: $(basename "$0") dir user"
+        exit 1
+fi
+
+DIR=$1
+USER=$2
+
+# Initial setup:
+#   - Extract base file system to "${DIR}-base"
+#   - mkdir "${DIR}"
+#   - For each user:
+#       - mkdir "${DIR}-${USER}"
+#       - mkdir "${DIR}-${USER}/upper"
+#       - mkdir "${DIR}-${USER}/work"
+
+# Already mounted for user?
+grep -q "upperdir=${DIR}-${USER}/upper" <(mount 2> /dev/null) && exit 0
+
+# Unmount, ignore error when not mounted
+umount -l "${DIR}" >& /dev/null || true
+
+mount overlay "${DIR}" -t overlay -olowerdir="${DIR}-base,upperdir=${DIR}-${USER}/upper,workdir=${DIR}-${USER}/work,nfs_export=on"
+/etc/init.d/nfs-kernel-server reload >& /dev/null
