@@ -1,0 +1,4 @@
+Renesas Salvator-XS based on Renesas R-Car H3 ES2.0 (r8a77951)
+
+Any useful information for the user goes here.
+The contents of this file are appended to the output of the "help" command.
