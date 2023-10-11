@@ -1,0 +1,199 @@
+# ------------------------------------------------------------------------------
+# SCREEN SETTINGS
+# ------------------------------------------------------------------------------
+
+# define a bigger scrollback, default is 100 lines
+defscrollback 1024
+
+# ------------------------------------------------------------------------------
+# SCREEN KEYBINDINGS
+# ------------------------------------------------------------------------------
+
+# GNU Screen version 4.08.00 (GNU) 05-Feb-20
+#
+#                        Screen key bindings, page 1 of 1.
+#
+#                        Command key:  ^A   Literal ^A:  a
+#
+#   break       ^B b         license     ,            removebuf   =
+#   clear       C            lockscreen  ^X x         reset       Z
+#   colon       :            log         H            screen      ^C c
+#   copy        ^[ [         login       L            select      '
+#   detach      ^D d         meta        a            silence     _
+#   digraph     ^V           monitor     M            split       S
+#   displays    *            next        ^@ ^N sp n   suspend     ^Z z
+#   dumptermcap .            number      N            time        ^T t
+#   fit         F            only        Q            title       A
+#   flow        ^F f         other       ^A           vbell       ^G
+#   focus       ^I           pow_break   B            version     v
+#   hardcopy    h            pow_detach  D            width       W
+#   help        ?            prev        ^H ^P p ^?   windows     ^W w
+#   history     { }          quit        \            wrap        ^R r
+#   info        i            readbuf     <            writebuf    >
+#   kill        K k          redisplay   ^L l         xoff        ^S s
+#   lastmsg     ^M m         remove      X            xon         ^Q q
+#
+# ^]   paste .
+# "    windowlist -b
+# -    select -
+# 0    select 0
+# 1    select 1
+# 2    select 2
+# 3    select 3
+# 4    select 4
+# 5    select 5
+# 6    select 6
+# 7    select 7
+# 8    select 8
+# 9    select 9
+# I    login on
+# O    login off
+# ]    paste .
+# |    split -v
+# :kB: focus prev
+
+# column 1
+
+#bind ^B
+#bind b
+bind C
+bind :
+bind ^[
+bind [
+#bind ^D
+#bind d
+bind ^V
+bind *
+bind .
+bind F
+bind ^F
+bind f
+bind ^I
+bind h
+#bind ?
+bind {
+bind }
+bind i
+bind K
+#bind k
+bind ^M
+bind m
+
+# column 2
+
+bind ,
+bind ^X
+bind x
+bind H
+bind L
+bind a
+bind M
+bind ^@
+bind ^N
+bind \040
+bind n
+bind N
+bind Q
+bind ^A
+bind B
+bind D
+bind ^H
+bind ^P
+bind p
+bind ^?
+bind \
+bind <
+bind ^L
+bind l
+bind X
+
+# column 3
+
+bind =
+bind Z
+bind ^C
+bind c
+bind \'
+bind _
+bind S
+bind ^Z
+bind z
+bind ^T
+bind t
+bind A
+bind ^G
+bind v
+bind W
+bind ^W
+bind w
+bind ^R
+bind r
+bind >
+bind ^S
+bind s
+bind ^Q
+bind q
+
+# other
+
+bind ^]
+bind \"
+bind -
+bind 0
+bind 1
+bind 2
+bind 3
+bind 4
+bind 5
+bind 6
+bind 7
+bind 8
+bind 9
+bind I
+bind O
+bind ]
+bind |
+
+# Remove some stupid / dangerous key bindings
+bind ^k
+bind ^\
+# Make them better
+bind \\
+bind K kill
+
+# ------------------------------------------------------------------------------
+# TERMINAL SETTINGS
+# ------------------------------------------------------------------------------
+
+# The vt100 description does not mention "dl". *sigh*
+termcapinfo vt100 dl=5\E[M
+
+# turn sending of screen messages to hardstatus off
+hardstatus off
+# Set the hardstatus prop on gui terms to set the titlebar/icon title
+termcapinfo xterm*|rxvt*|kterm*|Eterm* hs:ts=\E]0;:fs=\007:ds=\E]0;\007
+# use this for the hard status string
+hardstatus string "%h%? users: %u%?"
+
+# An alternative hardstatus to display a bar at the bottom listing the
+# windownames and highlighting the current windowname in blue. (This is only
+# enabled if there is no hardstatus setting for your terminal)
+#
+#hardstatus lastline "%-Lw%{= BW}%50>%n%f* %t%{-}%+Lw%<"
+
+# set these terminals up to be 'optimal' instead of vt100
+termcapinfo xterm*|linux*|rxvt*|Eterm* OP
+
+# Change the xterm initialization string from is2=\E[!p\E[?3;4l\E[4l\E>
+# (This fixes the "Aborted because of window size change" konsole symptoms found
+#  in bug #134198)
+termcapinfo xterm 'is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l'
+
+# To get screen to add lines to xterm's scrollback buffer, uncomment the
+# following termcapinfo line which tells xterm to use the normal screen buffer
+# (which has scrollback), not the alternate screen buffer.
+#
+termcapinfo xterm*|xs|rxvt ti@:te@
+
+# Enable non-blocking mode to better cope with flaky ssh connections.
+defnonblock 5
