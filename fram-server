@@ -14,7 +14,7 @@ BOARD=${USER}
 USER=$1
 
 # Log access early
-echo "$(date +'%F %T') ${BOARD} ${USER} ${SSH_ORIGINAL_COMMAND}" >> fram.log
+echo "$(date +'%F %T') ${BOARD} ${USER} ${SSH_ORIGINAL_COMMAND}" >> "${BOARD}.log"
 
 function usage()
 {
@@ -157,7 +157,7 @@ function needs_lock()
 	# Lock not expired. Call rejected
 	echo -n "Operation denied: "; report_lock
 
-	echo "$(date +'%F %T') ${BOARD} ${USER} REJECTED: Board locked by ${LOCKUSER}" >> fram.log
+	echo "$(date +'%F %T') ${BOARD} ${USER} REJECTED: Board locked by ${LOCKUSER}" >> "${BOARD}.log"
 	exit 1
 }
 
@@ -186,7 +186,7 @@ esac
 if [[ ${ADMIN} == true ]]; then
 	case "${SSH_ORIGINAL_COMMAND}" in
 	logs)
-		exec tail -f fram.log
+		exec tail -f "${BOARD}.log"
 		;;
 
 	setup*)
