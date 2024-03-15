@@ -3,7 +3,7 @@
 
 # Board FRAM - Board Farm Remote Access Management - Server
 #
-# Copyright (C) 2022-2023 Glider bv
+# Copyright (C) 2022-2024 Glider bv
 # Copyright (C) 2022 Ideas on Board
 
 set -e
@@ -348,7 +348,6 @@ case "${SSH_ORIGINAL_COMMAND}" in
 
 	wol)
 		# Optional
-		needs_lock
 		if type "wol-${BOARD}" >& /dev/null; then
 			needs_lock
 			"wol-${BOARD}"
