@@ -16,6 +16,11 @@ USER=$1
 # Log access early
 echo "$(date +'%F %T') ${BOARD} ${USER} ${SSH_ORIGINAL_COMMAND}" >> "${BOARD}.log"
 
+function has_cmd()
+{
+	type -t "$1" >& /dev/null
+}
+
 function usage()
 {
 	# User commands help
@@ -26,10 +31,10 @@ Valid commands are:
 
     help                           This usage information
 END
-	type "acc-${BOARD}-on" >& /dev/null && cat <<END
+	has_cmd "acc-${BOARD}-on" && cat <<END
     acc [on|off|status*]           Control board accessory switch
 END
-	if type "power-${BOARD}-sample" >& /dev/null; then
+	if has_cmd "power-${BOARD}-sample"; then
 		sample="|sample"
 	else
 		filler="       "
@@ -44,11 +49,11 @@ END
     rsync                          Upload files to TFTP directory (use rsync)
     status                         Show board status
 END
-	type "wake-${BOARD}" >& /dev/null && cat <<END
+	has_cmd "wake-${BOARD}" && cat <<END
     wake                           Wake board by key
 END
 
-	type "wol-${BOARD}" >& /dev/null && cat <<END
+	has_cmd "wol-${BOARD}" && cat <<END
     wol                            Wake board through Wake-on-LAN
 END
 
@@ -65,7 +70,7 @@ Valid admin commands are:
 
     logs                    View and monitor the logs
 END
-		type "setup-${BOARD}" >& /dev/null && cat <<END
+		has_cmd "setup-${BOARD}" && cat <<END
     setup <user>            Set up environment for specified user
 END
 		cat <<END
@@ -130,7 +135,7 @@ function needs_lock()
 
 	# No lock, no problem
 	if [[ ${res} -eq 0 ]]; then
-		type "setup-${BOARD}" >& /dev/null && "setup-${BOARD}" "${USER}"
+		has_cmd "setup-${BOARD}" && "setup-${BOARD}" "${USER}"
 		return 0
 	fi
 
@@ -150,7 +155,7 @@ function needs_lock()
 	if [[ ${UNLOCK_TIME} -lt $(date +%s) ]]; then
 		echo "Board lock released from ${LOCKUSER}, and now owned by ${USER}"
 		take_lock
-		type "setup-${BOARD}" >& /dev/null && "setup-${BOARD}" "${USER}"
+		has_cmd "setup-${BOARD}" && "setup-${BOARD}" "${USER}"
 		return 0
 	fi
 
@@ -191,7 +196,7 @@ if [[ ${ADMIN} == true ]]; then
 
 	setup*)
 		# Optional
-		if type "setup-${BOARD}" >& /dev/null; then
+		if has_cmd "setup-${BOARD}"; then
 			ARGS=(${SSH_ORIGINAL_COMMAND})
 			USER=${ARGS[1]}
 			test -n "${USER}" || { echo "No user specified"; exit 1; }
@@ -225,7 +230,7 @@ fi
 case "${SSH_ORIGINAL_COMMAND}" in
 	acc*)
 		# Optional
-		if type "acc-${BOARD}-on" >& /dev/null; then
+		if has_cmd "acc-${BOARD}-on"; then
 			case "${SSH_ORIGINAL_COMMAND}" in
 			acc\ on|acc\ 1)
 				needs_lock
@@ -280,7 +285,10 @@ case "${SSH_ORIGINAL_COMMAND}" in
 
 		power\ sample)
 			# Optional
-			type "power-${BOARD}-sample" >& /dev/null && { "power-${BOARD}-sample"; exit 0; }
+			if has_cmd "power-${BOARD}-sample"; then
+				"power-${BOARD}-sample"
+				exit 0
+			fi
 			;;
 
 		power\ status|power)
@@ -321,7 +329,7 @@ case "${SSH_ORIGINAL_COMMAND}" in
 		status="power: ${power}"
 
 		# Optional
-		if type "acc-${BOARD}-status" >& /dev/null; then
+		if has_cmd "acc-${BOARD}-status"; then
 			acc=$("acc-${BOARD}-status")
 			test "$acc" != 1 || acc=on
 			test "$acc" != 0 || acc=off
@@ -333,7 +341,7 @@ case "${SSH_ORIGINAL_COMMAND}" in
 
 	wake)
 		# Optional
-		if type "wake-${BOARD}" >& /dev/null; then
+		if has_cmd "wake-${BOARD}"; then
 			needs_lock
 			"wake-${BOARD}"
 			exit 0
@@ -342,7 +350,7 @@ case "${SSH_ORIGINAL_COMMAND}" in
 
 	wol)
 		# Optional
-		if type "wol-${BOARD}" >& /dev/null; then
+		if has_cmd "wol-${BOARD}"; then
 			needs_lock
 			"wol-${BOARD}"
 			exit 0
