@@ -6,7 +6,7 @@
 # Copyright (C) 2022-2024 Glider bv
 # Copyright (C) 2022 Ideas on Board
 
-set -e
+set -ef # Exit on failure, disable pathname expansion (globbing)
 
 PATH="${HOME}/bin:/usr/bin:/bin"
 
@@ -188,63 +188,74 @@ case "${SSH_ORIGINAL_COMMAND}" in
 esac
 
 # Admin commands
-if [[ ${ADMIN} == true ]]; then
-	case "${SSH_ORIGINAL_COMMAND}" in
+function parse_admin_cmd()
+{
+	case "$1" in
 	logs)
-		exec tail -f "${BOARD}.log"
+		test $# -ne 1 || exec tail -f "${BOARD}.log"
 		;;
 
-	setup*)
+	setup)
 		# Optional
 		if has_cmd "setup-${BOARD}"; then
-			ARGS=(${SSH_ORIGINAL_COMMAND})
-			USER=${ARGS[1]}
-			test -n "${USER}" || { echo "No user specified"; exit 1; }
-			"setup-${BOARD}" "${USER}"
+			test $# -eq 2 || { echo "No user specified"; exit 1; }
+			"setup-${BOARD}" "$2"
 			exit 0
 		fi
 		;;
 
 	shell)
-		needs_tty
-		exec /bin/bash -l
+		if [[ $# -eq 1 ]]; then
+			needs_tty
+			exec /bin/bash -l
+		fi
 		;;
 
 	steal)
-		report_lock
-		take_lock
-		echo -n "Board lock stolen: "; report_lock
-		exit 0
+		if [[ $# -eq 1 ]]; then
+			report_lock
+			take_lock
+			echo -n "Board lock stolen: "; report_lock
+			exit 0
+		fi
 		;;
 
 	unlock)
-		report_lock
-		rm -f "${LOCKFILE}"
-		echo "Board unlocked"
-		exit 0
+		if [[ $# -eq 1 ]]; then
+			report_lock
+			rm -f "${LOCKFILE}"
+			echo "Board unlocked"
+			exit 0
+		fi
 		;;
 	esac
+}
+
+if [[ ${ADMIN} == true ]]; then
+	parse_admin_cmd ${SSH_ORIGINAL_COMMAND} # Relies on word splitting
 fi
 
 # User commands
-case "${SSH_ORIGINAL_COMMAND}" in
-	acc*)
+function parse_user_cmd()
+{
+	case "$1" in
+	acc)
 		# Optional
-		if has_cmd "acc-${BOARD}-on"; then
-			case "${SSH_ORIGINAL_COMMAND}" in
-			acc\ on|acc\ 1)
+		if test $# -le 2 && has_cmd "acc-${BOARD}-on"; then
+			case "$2" in
+			on|1)
 				needs_lock
 				"acc-${BOARD}-on"
 				exit 0
 				;;
 
-			acc\ off|acc\ 0)
+			off|0)
 				needs_lock
 				"acc-${BOARD}-off"
 				exit 0
 				;;
 
-			acc\ status|acc)
+			status|"")
 				"acc-${BOARD}-status"
 				exit 0
 				;;
@@ -253,64 +264,74 @@ case "${SSH_ORIGINAL_COMMAND}" in
 		;;
 
 	console)
-		needs_tty
-		needs_lock
-		"console-${BOARD}"
-		exit 0
+		if [[ $# -eq 1 ]]; then
+			needs_tty
+			needs_lock
+			"console-${BOARD}"
+			exit 0
+		fi
 		;;
 
 	lock)
-		needs_lock
-		echo -n "Lock granted: "; report_lock
-		exit 0
+		if [[ $# -eq 1 ]]; then
+			needs_lock
+			echo -n "Lock granted: "; report_lock
+			exit 0
+		fi
 		;;
 
 	ls)
-		exec ls -lAh "${TFTP_ROOT}/${BOARD}"
+		test $# -ne 1 || exec ls -lAh "${TFTP_ROOT}/${BOARD}"
 		;;
 
-	power*)
-		case "${SSH_ORIGINAL_COMMAND}" in
-		power\ on|power\ 1)
-			needs_lock
-			"power-${BOARD}-on"
-			exit 0
-			;;
-
-		power\ off|power\ 0)
-			needs_lock
-			"power-${BOARD}-off"
-			exit 0
-			;;
-
-		power\ sample)
-			# Optional
-			if has_cmd "power-${BOARD}-sample"; then
-				"power-${BOARD}-sample"
+	power)
+		if [[ $# -le 2 ]]; then
+			case "$2" in
+			on|1)
+				needs_lock
+				"power-${BOARD}-on"
 				exit 0
-			fi
-			;;
+				;;
 
-		power\ status|power)
-			"power-${BOARD}-status"
-			exit 0
-			;;
-		esac
+			off|0)
+				needs_lock
+				"power-${BOARD}-off"
+				exit 0
+				;;
+
+			sample)
+				# Optional
+				if has_cmd "power-${BOARD}-sample"; then
+					"power-${BOARD}-sample"
+					exit 0
+				fi
+				;;
+
+			status|"")
+				"power-${BOARD}-status"
+				exit 0
+				;;
+			esac
+		fi
 		;;
 
 	release)
-		needs_lock
-		rm "${LOCKFILE}"
-		exit 0
+		if [[ $# -eq 1 ]]; then
+			needs_lock
+			rm "${LOCKFILE}"
+			exit 0
+		fi
 		;;
 
 	reset)
-		needs_lock
-		"reset-${BOARD}"
-		exit 0
+		if [[ $# -eq 1 ]]; then
+			needs_lock
+			"reset-${BOARD}"
+			exit 0
+		fi
 		;;
 
-	rsync\ *)
+	rsync)
 		# Silence needs_lock output to prevent breaking rsync
 		# Ideally we should report back failures through the rsync MOTD
 		needs_lock >& /dev/null
@@ -319,29 +340,31 @@ case "${SSH_ORIGINAL_COMMAND}" in
 		;;
 
 	status)
-		# Report the board lock status
-		report_lock
+		if [[ $# -eq 1 ]]; then
+			# Report the board lock status
+			report_lock
 
-		# Show board status
-		power=$("power-${BOARD}-status")
-		test "$power" != 1 || power=on
-		test "$power" != 0 || power=off
-		status="power: ${power}"
+			# Show board status
+			power=$("power-${BOARD}-status")
+			test "$power" != 1 || power=on
+			test "$power" != 0 || power=off
+			status="power: ${power}"
 
-		# Optional
-		if has_cmd "acc-${BOARD}-status"; then
-			acc=$("acc-${BOARD}-status")
-			test "$acc" != 1 || acc=on
-			test "$acc" != 0 || acc=off
-			status="${status} / acc: ${acc}"
+			# Optional
+			if has_cmd "acc-${BOARD}-status"; then
+				acc=$("acc-${BOARD}-status")
+				test "$acc" != 1 || acc=on
+				test "$acc" != 0 || acc=off
+				status="${status} / acc: ${acc}"
+			fi
+			echo "${status}"
+			exit 0
 		fi
-		echo "${status}"
-		exit 0
 		;;
 
 	wake)
 		# Optional
-		if has_cmd "wake-${BOARD}"; then
+		if test $# -eq 1 && has_cmd "wake-${BOARD}"; then
 			needs_lock
 			"wake-${BOARD}"
 			exit 0
@@ -350,19 +373,22 @@ case "${SSH_ORIGINAL_COMMAND}" in
 
 	wol)
 		# Optional
-		if has_cmd "wol-${BOARD}"; then
+		if test $# -eq 1 && has_cmd "wol-${BOARD}"; then
 			needs_lock
 			"wol-${BOARD}"
 			exit 0
 		fi
 		;;
 
-	command*|pwd)
+	command|pwd)
 		# Issued by bash when completing e.g. rsync or scp commands,
 		# hence ignored
 		exit 0
 		;;
-esac
+	esac
+}
+
+parse_user_cmd ${SSH_ORIGINAL_COMMAND} # Relies on word splitting
 
 echo "Unknown command ${SSH_ORIGINAL_COMMAND}"
 exit 1
