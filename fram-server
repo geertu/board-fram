@@ -362,5 +362,6 @@ case "${SSH_ORIGINAL_COMMAND}" in
 
 	*)
 		echo "Unknown command ${SSH_ORIGINAL_COMMAND}"
+		exit 1
 		;;
 esac
