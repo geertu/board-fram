@@ -316,21 +316,15 @@ case "${SSH_ORIGINAL_COMMAND}" in
 
 		# Show board status
 		power=$("power-${BOARD}-status")
-		if [[ ${power} == 1 ]]; then
-			power=on
-		else
-			power=off
-		fi
+		test "$power" != 1 || power=on
+		test "$power" != 0 || power=off
 		status="power: ${power}"
 
 		# Optional
 		if type "acc-${BOARD}-status" >& /dev/null; then
 			acc=$("acc-${BOARD}-status")
-			if [[ ${acc} == 1 ]]; then
-				acc=on
-			else
-				acc=off
-			fi
+			test "$acc" != 1 || acc=on
+			test "$acc" != 0 || acc=off
 			status="${status} / acc: ${acc}"
 		fi
 		echo "${status}"
