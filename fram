@@ -27,6 +27,8 @@ Valid commands are:
     lock                           Lock the board for exclusive access
  #  logs                           View and monitor the logs
     ls                             List the TFTP directory contents
+ #  offline [msg ...]              Make the board unavailable
+ #  online                         Make the board available again
     power [on|off|sample|status*]  Control board power
     release                        Release the board lock
     reset                          Reset board

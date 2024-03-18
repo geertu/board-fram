@@ -69,6 +69,8 @@ END
 Valid admin commands are:
 
     logs                    View and monitor the logs
+    offline [msg ...]       Make the board unavailable
+    online                  Make the board available again
 END
 		has_cmd "setup-${BOARD}" && cat <<END
     setup <user>            Set up environment for specified user
@@ -195,6 +197,17 @@ function parse_admin_cmd()
 		test $# -ne 1 || exec tail -f "${BOARD}.log"
 		;;
 
+	offline)
+		shift
+		test $# -ne 0 && msg="$*" || msg=offline
+		echo "$msg" > "${BOARD}.offline"
+		exit 0
+		;;
+
+	online)
+		test $# -ne 1 || exec rm -fv "${BOARD}.offline"
+		;;
+
 	setup)
 		# Optional
 		if has_cmd "setup-${BOARD}"; then
@@ -233,6 +246,16 @@ function parse_admin_cmd()
 
 if [[ ${ADMIN} == true ]]; then
 	parse_admin_cmd ${SSH_ORIGINAL_COMMAND} # Relies on word splitting
+fi
+
+# Deny access to non-admin users when the board is not available
+if [[ -f "${BOARD}.offline" ]]; then
+	echo -n "Board is not available: "
+	cat "${BOARD}.offline"
+	if [[ ${ADMIN} != true ]]; then
+		echo "Please come back later."
+		exit 1
+	fi
 fi
 
 # User commands
