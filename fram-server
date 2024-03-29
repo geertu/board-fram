@@ -250,7 +250,7 @@ case "${SSH_ORIGINAL_COMMAND}" in
 				;;
 			esac
 		fi
-		;;& # fallthrough
+		;;
 
 	console)
 		needs_tty
@@ -296,7 +296,7 @@ case "${SSH_ORIGINAL_COMMAND}" in
 			exit 0
 			;;
 		esac
-		;;& # fallthrough
+		;;
 
 	release)
 		needs_lock
@@ -346,7 +346,7 @@ case "${SSH_ORIGINAL_COMMAND}" in
 			"wake-${BOARD}"
 			exit 0
 		fi
-		;;& # fallthrough
+		;;
 
 	wol)
 		# Optional
@@ -355,15 +355,14 @@ case "${SSH_ORIGINAL_COMMAND}" in
 			"wol-${BOARD}"
 			exit 0
 		fi
-		;;& # fallthrough
+		;;
 
 	command*|pwd)
 		# Issued by bash when completing e.g. rsync or scp commands,
 		# hence ignored
-		;;
-
-	*)
-		echo "Unknown command ${SSH_ORIGINAL_COMMAND}"
-		exit 1
+		exit 0
 		;;
 esac
+
+echo "Unknown command ${SSH_ORIGINAL_COMMAND}"
+exit 1
