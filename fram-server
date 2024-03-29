@@ -47,6 +47,11 @@ END
     release                        Release the board lock
     reset                          Reset board
     rsync                          Upload files to TFTP directory (use rsync)
+END
+	 host "${BOARD}" >& /dev/null && cat <<END
+    ssh-proxy                      Open a netcat proxy path to the target
+END
+	cat <<END
     status                         Show board status
 END
 	has_cmd "wake-${BOARD}" && cat <<END
@@ -98,6 +103,7 @@ test -f "${BOARD}.cfg" && source "${BOARD}.cfg"
 
 # Initialise defaults
 TFTP_ROOT=${TFTP_ROOT:-/var/lib/tftpboot}
+SSH_PORT=${SSH_PORT:-22}
 
 # Handle board locking
 LOCKFILE=${LOCKFILE:-/var/run/user/${UID}/.${BOARD}.lockfile}
@@ -360,6 +366,14 @@ function parse_user_cmd()
 		needs_lock >& /dev/null
 		export SSH_ORIGINAL_COMMAND
 		exec /usr/bin/rrsync -wo "${TFTP_ROOT}/${BOARD}"
+		;;
+
+	ssh-proxy)
+		# Optional
+		if host "${BOARD}" >& /dev/null; then
+			until nc -zw 1 "${BOARD}" "${SSH_PORT}"; do sleep 1; done
+			exec nc "${BOARD}" "${SSH_PORT}"
+		fi
 		;;
 
 	status)

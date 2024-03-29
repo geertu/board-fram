@@ -34,6 +34,7 @@ Valid commands are:
     reset                          Reset board
  #  setup <user>                   Set up environment for specified user
  #  shell                          Launch a shell
+    ssh-proxy                      Open a netcat proxy path to the target
     status                         Show board status
  #  steal                          Release then immediately lock
  #  unlock                         Release the board from any lock
