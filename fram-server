@@ -42,11 +42,11 @@ END
 	cat <<END
     console                        Access the board console (use "ssh -t")
     lock                           Lock the board for exclusive access
-    ls                             List the TFTP directory contents
+    ls                             List the boot directory contents
     power [on|off${sample}|status*]${filler}  Control board power
     release                        Release the board lock
     reset                          Reset board
-    rsync                          Upload files to TFTP directory (use rsync)
+    rsync                          Upload files to boot directory (use rsync)
 END
 	 host "${BOARD}" >& /dev/null && cat <<END
     ssh-proxy                      Open a netcat proxy path to the target
