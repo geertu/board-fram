@@ -3,7 +3,7 @@
 
 # Board FRAM - Board Farm Remote Access Management - Client convenience wrapper
 #
-# Copyright (C) 2023 Glider bv
+# Copyright (C) 2023-2024 Glider bv
 
 set -e
 
@@ -19,31 +19,19 @@ Usage:
     $(basename "$0") <help>
     $(basename "$0") <board> <command> ...
 
-Valid commands are:
+Basic commands are:
 
-    help                           Show board usage information
-    acc [on|off|status*]           Control board accessory switch
+    help                           Show full board usage information
     console                        Access the board console
-    lock                           Lock the board for exclusive access
- #  logs                           View and monitor the logs
     ls                             List the boot directory contents
- #  offline [msg ...]              Make the board unavailable
- #  online                         Make the board available again
-    power [on|off|sample|status*]  Control board power
-    release                        Release the board lock
+    power [on|off|status*]         Control board power
     reset                          Reset board
- #  setup <user>                   Set up environment for specified user
- #  shell                          Launch a shell
-    ssh-proxy                      Open a netcat proxy path to the target
     status                         Show board status
- #  steal                          Release then immediately lock
- #  unlock                         Release the board from any lock
-    upload <file> ...              Upload files to TFTP directory
-    wake                           Wake board by key
-    wol                            Wake board through Wake-on-LAN
+    upload <file> ...              Upload files to boot directory
 
-Commands marked with a hash mark need admin permissions on the target board.
 Options marked with an asterisk are the default.
+
+Use "fram <board> help" for more commands and board-specific usage information.
 END
 	exit 0
 }
