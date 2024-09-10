@@ -17,7 +17,7 @@
 	  - Multi-User access locking
 	  - Restricted administration mode
 
-  - FRAM needs no special tools on the client, just ssh (cfr. gitolite)
+  - FRAM needs no special tools on the client, just ssh and rsync
 
     `ssh <board>@<remote> <command> ...`
 
