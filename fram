@@ -16,10 +16,15 @@ function usage()
 Board FRAM - Board Farm Remote Access Management
 
 Usage:
-    $(basename "$0") <help>
+    $(basename "$0") <command>
     $(basename "$0") <board> <command> ...
 
-Basic commands are:
+Generic commands are:
+
+    help                           Show this usage information
+    list                           List all available boards
+
+Basic board-specific commands are:
 
     help                           Show full board usage information
     console                        Access the board console
@@ -46,7 +51,16 @@ elif [ $# -ge 2 ]; then
 	CMD=$1
 	shift
 else
-	usage
+	case $1 in
+	list)
+		cut -d = -f 1 "$CONFIG"
+		;;
+
+	*)
+		usage
+		;;
+	esac
+	exit 0
 fi
 
 TARGET=$(sed -n -e "s/^$BOARD=//p" "$CONFIG")
