@@ -37,18 +37,16 @@ END
 }
 
 CMD=$(basename "$0")
-if [ "$CMD" == "fram" ]; then
-	if [ $# -lt 2 ]; then
-		usage
-	fi
-
+if [ "$CMD" != "fram" ]; then
+	BOARD=${CMD#*-}
+	CMD=${CMD%%-*}
+elif [ $# -ge 2 ]; then
 	BOARD=$1
 	shift
 	CMD=$1
 	shift
 else
-	BOARD=${CMD#*-}
-	CMD=${CMD%%-*}
+	usage
 fi
 
 TARGET=$(sed -n -e "s/^$BOARD=//p" "$CONFIG")
