@@ -3,11 +3,11 @@
 The actual operations to control a board in your farm are farm and/or board
 specific.  Hence these operations have to be provided by you.
 
-They can be provided as shell functions (in <board>.cfg), or as scripts or
+They can be provided as shell functions (in "$BOARD.cfg"), or as scripts or
 other executables (in $HOME/bin, or in the system's default $PATH).
 
-All operations are of the form "<verb>-<noun>" or "<verb>-<noun>-<option>",
-with "<noun>" the name of the board.
+All operations are of the form "$VERB-$NOUN" or "$VERB-$NOUN-$OPTION", with
+"$NOUN" the name of the board.
 
 See examples/h3-salvator-xs.cfg for an example.
 
@@ -32,22 +32,22 @@ These operations are intended for controlling and monitoring external power
 input to the board.  Please see "Accessory Switch Control" for controlling an
 optional on-board power-switch.
 
-    "power-$BOARD-on"
+  - "power-$BOARD-on"
 
     Power the board on.
 
-    "power-$BOARD-off"
+  - "power-$BOARD-off"
 
     Power the board off.
 
-    "power-$BOARD-status"
+  - "power-$BOARD-status"
 
     Show the board's power status.
 
 
 ### Reset Control ###
 
-    "reset-$BOARD"
+  - "reset-$BOARD"
 
     Reset the board.
 
@@ -60,7 +60,7 @@ optional on-board power-switch.
 
 ### External Power Measurement ###
 
-    "power-$BOARD-sample"
+  - "power-$BOARD-sample"
 
     Show current power consumption of the board.
 
@@ -71,33 +71,33 @@ These operations are intended for controlling and monitoring an on-board
 power-switch.  If such a switch is present, all three operations below must be
 implemented.
 
-    "acc-$BOARD-on"
+  - "acc-$BOARD-on"
 
     Set accessory switch on.
 
-    "acc-$BOARD-off"
+  - "acc-$BOARD-off"
 
     Set accessory switch off.
 
-    "acc-$BOARD-status"
+  - "acc-$BOARD-status"
 
     Show the board's accessory switch status.
 
 
 ### Wake-Up Control ###
 
-    "wake-$BOARD"
+  - "wake-$BOARD"
 
     Wake the board using a key or GPIO.
 
-    "wol-$BOARD"
+  - "wol-$BOARD"
 
     Wake the board using Wake-on-LAN.
 
 
 ## User Environment Set-Up ###
 
-    "setup-$BOARD" "$USER"
+  - "setup-$BOARD" "$USER"
 
     Set up a proper environment for the user.  This can be used to e.g. provide
     a user-specific NFS root file system.
