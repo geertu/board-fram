@@ -179,6 +179,25 @@ if [[ ${ADMIN_USERS} != "" ]]; then
 	ADMIN=$(eval "case ${USER} in ${ADMIN_USERS}) echo true ;; esac")
 fi
 
+# Deny access to non-admin users when the board is not available
+if [[ -f "${BOARD}.offline" ]]; then
+	case "${SSH_ORIGINAL_COMMAND}" in
+	rsync*|ssh-proxy*)
+		# Do not print output, so these keep on working for admin users
+		;;
+
+	*)
+		echo -n "Board is not available: "
+		cat "${BOARD}.offline"
+		;;
+	esac
+
+	if [[ ${ADMIN} != true ]]; then
+		echo "Please come back later."
+		exit 1
+	fi
+fi
+
 # Handle help and welcome early, as they do not need locking
 case "${SSH_ORIGINAL_COMMAND}" in
 	help)
@@ -252,16 +271,6 @@ function parse_admin_cmd()
 
 if [[ ${ADMIN} == true ]]; then
 	parse_admin_cmd ${SSH_ORIGINAL_COMMAND} # Relies on word splitting
-fi
-
-# Deny access to non-admin users when the board is not available
-if [[ -f "${BOARD}.offline" ]]; then
-	echo -n "Board is not available: "
-	cat "${BOARD}.offline"
-	if [[ ${ADMIN} != true ]]; then
-		echo "Please come back later."
-		exit 1
-	fi
 fi
 
 # User commands
