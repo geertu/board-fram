@@ -176,7 +176,7 @@ function needs_lock()
 
 # Admin commands must be enabled explicitly by setting ADMIN_USERS
 if [[ ${ADMIN_USERS} != "" ]]; then
-	ADMIN=$(eval "case ${USER} in ${ADMIN_USERS}) echo true ;; esac")
+	ADMIN=$(eval "case ${USER} in ${ADMIN_USERS//,/|}) echo true ;; esac")
 fi
 
 # Deny access to non-admin users when the board is not available
