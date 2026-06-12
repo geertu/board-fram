@@ -3,7 +3,7 @@
 
 # Board FRAM - Board Farm Remote Access Management - Client convenience wrapper
 #
-# Copyright (C) 2023-2024 Glider bv
+# Copyright (C) 2023-2026 Glider bv
 
 set -e
 
@@ -53,7 +53,7 @@ elif [ $# -ge 2 ]; then
 else
 	case $1 in
 	list)
-		cut -d = -f 1 "$CONFIG"
+		grep -v ^# "$CONFIG" | cut -d = -f 1
 		;;
 
 	*)
