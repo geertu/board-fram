@@ -3,7 +3,7 @@
 
 # Board FRAM - Board Farm Remote Access Management - Server
 #
-# Copyright (C) 2022-2024 Glider bv
+# Copyright (C) 2022-2026 Glider bv
 # Copyright (C) 2022 Ideas on Board
 
 set -ef # Exit on failure, disable pathname expansion (globbing)
@@ -192,10 +192,7 @@ if [[ -f "${BOARD}.offline" ]]; then
 		;;
 	esac
 
-	if [[ ${ADMIN} != true ]]; then
-		echo "Please come back later."
-		exit 1
-	fi
+	test "${ADMIN}" != true && { echo "Please come back later."; exit 1; }
 fi
 
 # Handle help and welcome early, as they do not need locking
