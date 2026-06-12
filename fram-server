@@ -280,6 +280,9 @@ function parse_user_cmd()
 			case "$2" in
 			on|1)
 				needs_lock
+				power=$("power-${BOARD}-status")
+				test "$power" == off && power=0
+				test "$power" == 0 && { echo "Board power is off.  Please power on first."; exit 1; }
 				"acc-${BOARD}-on"
 				exit 0
 				;;
@@ -330,6 +333,11 @@ function parse_user_cmd()
 
 			off|0)
 				needs_lock
+				if has_cmd "acc-${BOARD}-status"; then
+					acc=$("acc-${BOARD}-status")
+					test "$acc" == on && acc=1
+					test "$acc" == 1 && { echo "Board acc is on.  Please acc off first."; exit 1; }
+				fi
 				"power-${BOARD}-off"
 				exit 0
 				;;
