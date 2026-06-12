@@ -389,15 +389,15 @@ function parse_user_cmd()
 
 			# Show board status
 			power=$("power-${BOARD}-status")
-			test "$power" != 1 || power=on
-			test "$power" != 0 || power=off
+			test "$power" == 1 && power=on
+			test "$power" == 0 && power=off
 			status="power: ${power}"
 
 			# Optional
 			if has_cmd "acc-${BOARD}-status"; then
 				acc=$("acc-${BOARD}-status")
-				test "$acc" != 1 || acc=on
-				test "$acc" != 0 || acc=off
+				test "$acc" == 1 && acc=on
+				test "$acc" == 0 && acc=off
 				status="${status} / acc: ${acc}"
 			fi
 			echo "${status}"
