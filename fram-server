@@ -403,7 +403,7 @@ function parse_user_cmd()
 
 			# Optional
 			if has_cmd "acc-${BOARD}-status"; then
-				acc=$("acc-${BOARD}-status")
+				acc=$("acc-${BOARD}-status") || acc=off
 				test "$acc" == 1 && acc=on
 				test "$acc" == 0 && acc=off
 				status="${status} / acc: ${acc}"
